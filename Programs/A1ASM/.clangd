@@ -1,6 +1,6 @@
 CompileFlags:
   CompilationDatabase: >-
-    c:\HAW\GT\TI_Labor\gitProjekte\ITS-BRD-VSC\Programs\ASM_Aufgabe1ASM\out\ASM_Aufgabe1ASM\ITSboard_Assembly\Debug
+    c:\HAW\GT\TI_Labor\gitProjekte\ITS-BRD-VSC\Programs\A1ASM\out\A1ASM\ITSboard_Assembly\Debug
   Add:
     - "-D_ILP32=1\r\n"
     - "-D_USE_STATIC_INLINE=1\r\n"
@@ -412,28 +412,28 @@ CompileFlags:
     - "-D__thumb2__=1\r\n"
     - "-D__thumb__=1\r\n"
     - '-D__ARMCOMPILER_LIBCXX=1'
-    - '-IC:/HAW/GT/TI_Labor/gitProjekte/ITS-BRD-VSC/Programs/ASM_Aufgabe1ASM/Inc'
+    - '-IC:/HAW/GT/TI_Labor/gitProjekte/ITS-BRD-VSC/Programs/A1ASM/Inc'
     - >-
-      -IC:/HAW/GT/TI_Labor/gitProjekte/ITS-BRD-VSC/Programs/ASM_Aufgabe1ASM/../../stm32cubef4/Drivers/CMSIS/Device/ST/STM32F4xx/Include
+      -IC:/HAW/GT/TI_Labor/gitProjekte/ITS-BRD-VSC/Programs/A1ASM/../../stm32cubef4/Drivers/CMSIS/Device/ST/STM32F4xx/Include
     - >-
-      -IC:/HAW/GT/TI_Labor/gitProjekte/ITS-BRD-VSC/Programs/ASM_Aufgabe1ASM/../../stm32cubef4/Drivers/CMSIS/Include
+      -IC:/HAW/GT/TI_Labor/gitProjekte/ITS-BRD-VSC/Programs/A1ASM/../../stm32cubef4/Drivers/CMSIS/Include
     - >-
-      -IC:/HAW/GT/TI_Labor/gitProjekte/ITS-BRD-VSC/Programs/ASM_Aufgabe1ASM/../../stm32cubef4/Drivers/STM32F4xx_HAL_Driver/Inc
+      -IC:/HAW/GT/TI_Labor/gitProjekte/ITS-BRD-VSC/Programs/A1ASM/../../stm32cubef4/Drivers/STM32F4xx_HAL_Driver/Inc
     - >-
-      -IC:/HAW/GT/TI_Labor/gitProjekte/ITS-BRD-VSC/Programs/ASM_Aufgabe1ASM/../../stm32cubef4/Drivers/BSP/STM32F4xx_Nucleo_144
+      -IC:/HAW/GT/TI_Labor/gitProjekte/ITS-BRD-VSC/Programs/A1ASM/../../stm32cubef4/Drivers/BSP/STM32F4xx_Nucleo_144
     - >-
-      -IC:/HAW/GT/TI_Labor/gitProjekte/ITS-BRD-VSC/Programs/ASM_Aufgabe1ASM/../../stm32cubef4/Utilities/Fonts
+      -IC:/HAW/GT/TI_Labor/gitProjekte/ITS-BRD-VSC/Programs/A1ASM/../../stm32cubef4/Utilities/Fonts
     - >-
-      -IC:/HAW/GT/TI_Labor/gitProjekte/ITS-BRD-VSC/Programs/ASM_Aufgabe1ASM/../../DisplayWaveshare/Inc
+      -IC:/HAW/GT/TI_Labor/gitProjekte/ITS-BRD-VSC/Programs/A1ASM/../../DisplayWaveshare/Inc
     - >-
-      -IC:/HAW/GT/TI_Labor/gitProjekte/ITS-BRD-VSC/Programs/ASM_Aufgabe1ASM/../../ITS_BRD_LIB/Utilities/AddFonts
+      -IC:/HAW/GT/TI_Labor/gitProjekte/ITS-BRD-VSC/Programs/A1ASM/../../ITS_BRD_LIB/Utilities/AddFonts
     - >-
-      -IC:/HAW/GT/TI_Labor/gitProjekte/ITS-BRD-VSC/Programs/ASM_Aufgabe1ASM/tmp/ASM_Aufgabe1ASM.Debug+ITSboard_Assembly
+      -IC:/HAW/GT/TI_Labor/gitProjekte/ITS-BRD-VSC/Programs/A1ASM/tmp/A1ASM.Debug+ITSboard_Assembly
     - >-
-      -IC:/HAW/GT/TI_Labor/gitProjekte/ITS-BRD-VSC/Programs/ASM_Aufgabe1ASM/RTE/_Debug_ITSboard_Assembly
+      -IC:/HAW/GT/TI_Labor/gitProjekte/ITS-BRD-VSC/Programs/A1ASM/RTE/_Debug_ITSboard_Assembly
     - >-
       -IC:/Users/zornj/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include
     - >-
       -IC:/Users/zornj/AppData/Local/Arm/Packs/Keil/STM32F4xx_DFP/2.17.1/Drivers/CMSIS/Device/ST/STM32F4xx/Include
     - >-
-      -IC:/HAW/GT/TI_Labor/gitProjekte/ITS-BRD-VSC/Programs/ASM_Aufgabe1ASM/../../ITS_BRD_LIB/Inc
+      -IC:/HAW/GT/TI_Labor/gitProjekte/ITS-BRD-VSC/Programs/A1ASM/../../ITS_BRD_LIB/Inc
