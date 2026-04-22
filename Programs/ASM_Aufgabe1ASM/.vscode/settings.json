@@ -1,0 +1,7 @@
+{
+    "debug.hideSlowPreLaunchWarning": true,
+    "debug.showInStatusBar": "never",
+    "clangd.arguments": [
+        "--compile-commands-dir=c:\\HAW\\Git_clone\\ITS-BRD-VSC\\Programs\\ASM_Aufgabe1ASM\\out\\ASM_Aufgabe1ASM\\ITSboard_Assembly\\Debug"
+    ]
+}
