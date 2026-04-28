@@ -1,0 +1,7 @@
+{
+    "debug.hideSlowPreLaunchWarning": true,
+    "debug.showInStatusBar": "never",
+    "clangd.arguments": [
+        "--compile-commands-dir=c:\\HAW\\GT\\TI_Labor\\gitProjekte\\ITS-BRD-VSC\\Programs\\A2ASM\\out\\A2ASM\\ITSboard_Assembly\\Debug"
+    ]
+}
