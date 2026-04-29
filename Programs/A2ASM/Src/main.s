@@ -1,4 +1,4 @@
-;******************** (C) COPYRIGHT HAW-Hamburg ********************************
+;******************** (C) COPYRIGHT HAW-Hamburg ***********************
 ;* File Name          : main.s
 ;* Author             : Martin Becke    
 ;* Version            : V1.0
@@ -7,10 +7,11 @@
 ;                     : and manipulation.
 ;                     : 
 ;
-;*******************************************************************************
+;**********************************************************************
     EXTERN initITSboard ; Helper to organize the setup of the board
 
-    EXPORT main         ; we need this for the linker - In this context it set the entry point,too
+    EXPORT main 
+; we need this for the linker -In this context it set the entry point,too
 
 ConstByteA  EQU 0xaffe
     
@@ -36,7 +37,7 @@ main
     
 ;* const in var
     mov     R5,#ConstByteA  ; Anw07
-    ldr     R0,=VariableC   , giebt die Adresse an
+    ldr     R0,=VariableC   ; giebt die Adresse an
     strh    R5,[R0]         ; Anw08
 
 ;* Change value from x1234 to x4321
