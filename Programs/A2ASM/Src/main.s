@@ -34,19 +34,26 @@ main
     orr     R2, R3          ; Anw05
     strh    R2,[R0]         ; Anw06 
 
-    
 ;* const in var
     mov     R5,#ConstByteA  ; Anw07
-    ldr     R0,=VariableC   ; giebt die Adresse an
+    ldr     R0,=VariableC
     strh    R5,[R0]         ; Anw08
+    ldr     R0,=VariableC   ; Anw01
+    ldrb    R2,[R0]         ; Anw02
+    ldrb    R3,[R0,#1]      ; Anw03
+    lsl     R2, #8          ; Anw04
+    orr     R2, R3          ; Anw05
+    strh    R2,[R0]
+        
 
 ;* Change value from x1234 to x4321
     ldr     R1,=VariableB   ; Anw09
     ldrh    R6,[R1]         ; Anw0A
-    mov     R7, #0x30ED     ; Anw0B
+    mov     R7, #0x21DE     ; Anw0B
     add     R6, R6, R7      ; Anw0C
     strh    R6,[R1]         ; Anw0D
     b .                     ; Anw0E
+
     
     ALIGN
     END
