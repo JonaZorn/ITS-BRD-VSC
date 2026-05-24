@@ -1,4 +1,4 @@
-;******************** (C) COPYRIGHT HAW-Hamburg ********************************
+;******************** (C) COPYRIGHT HAW-Hamburg ***********************
 ;* File Name          : main.s
 ;* Author             : Martin Becke
 ;* Version            : V1.0
@@ -7,7 +7,7 @@
 ;                     :
 ;                     :
 ;
-;*******************************************************************************
+;**********************************************************************
     EXTERN initITSboard ; Helper to organize the setup of the board
 
     EXPORT main         ; we need this for the linker
@@ -28,8 +28,8 @@ GPIO_D_CLR          equ (GPIOD_BASE + 0x1A)
 main
     BL initITSboard             ; needed by the board to setup
     nop                         ; no operation
-    LDR     R6, =GPIO_D_SET     ; get address of the GPIO data set register
-    LDR     R7, =GPIO_D_CLR     ; get address of the GPIO data clear register
+    LDR     R6, =GPIO_D_SET     ; get address of the GPIO data set 
+    LDR     R7, =GPIO_D_CLR     ; get address of the GPIO data clear 
     MOV     R0, #0x03           ; load mask 0b0011
     ;MOV     R1, #0x02           ; load mask 0b0010
     ;MOV     R2, #0x40           ; load mask 0b0100

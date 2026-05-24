@@ -1,5 +1,5 @@
-psolution:
-  created-for: CMSIS-Toolbox@2.4.0
+solution:
+  created-for: CMSIS-Toolbox@2.12.0
   cdefault:
   compiler: AC6
 
@@ -14,6 +14,14 @@ psolution:
     - type: ITSboard_Assembly
       board: STMicroelectronics::NUCLEO-F429ZI:Rev.B
       device: STMicroelectronics::STM32F429ZITx
+      target-set:
+        - set:
+          images:
+            - project-context: PrimzahlSiebASM.Debug
+          debugger:
+            name: ST-Link@pyOCD
+            clock: 4000000
+            protocol: swd
 
   # List of different build configurations.
   build-types:
@@ -27,4 +35,4 @@ psolution:
 
   # List related projects.
   projects:
-    - project: A2ASM.cproject.yml
+    - project: PrimzahlSiebASM.cproject.yml
