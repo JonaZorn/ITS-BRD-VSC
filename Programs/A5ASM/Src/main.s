@@ -21,11 +21,12 @@ ergebnis
 
 main            PROC
                 bl      initITSboard    ;Das Board wirt initialisiert.
+                
+for_01          
                 ldr     r0,=zahlen      ;r0 wird mit Adresse belegt.
                 mov     r2,#1000        ;r2 = Länge zahlen - die zu prüfenden Zahlen 2 - 1000.
                 mov     r3,#2           ;r3 ist der Startwert.
-                mul     r7,r3,r3
-for_01                                  
+                mul     r7,r3,r3                            
 until_01                                
                 cmp     r7,r2           ;r3 wird mit e2 verglichen.
                 bge     endfor_01       ;Ist r3 größer gelich r2 breche ab.   
@@ -35,8 +36,9 @@ if_02
                 cmp     r1,#0x01        ;Vergleiche r1 mit 0x01.
                 bne     endif_02        ;Ist r1 ungleich 0x01 spring zu endif_02.
 then_02 
-                mul     r4,r3,r3        ;r4 = r3 + r3.
+               
 for_03 
+                mul     r4,r3,r3        ;r4 = r3 * r3.
 until_03 
                 cmp     r4,r2           ;Vergleiche r4 mit r2.
                 bge     endfor_03       ;Ist r2 größer gleich r4 spring zu endfor_03.
