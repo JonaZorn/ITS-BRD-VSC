@@ -57,10 +57,9 @@ step_01
 endfor_01
 
 ;---Ausgabe---
-
+for_ausgabe
                 ldr     r6,=ergebnis    ;Schreibe in r6 die Adresse zu ergebnis.
-                mov     r3,#2           ;Überschreibe r3 mir Zahl 2.
-for_ausgabe      
+                mov     r3,#2           ;Überschreibe r3 mir Zahl 2.      
 until_ausgabe  
                 cmp     r3,r2           ;Vergleiche r3 mit r2.
                 bge     endfor_ausgabe  ;ist r2 größer gleich r3 spring zu endfor_ausgabe.
@@ -70,8 +69,8 @@ if_ausgabe
                 cmp     r5,#0x01        ;Vergleiche r5 mit 0x01.
                 bne     endif_ausgabe   ;Ist r5 ungleich 0x01 springe zu endif_ausgabe.
 then_ausgabe
-                strb    r3,[r6]         ;Schreibe r3 an Adresse r6.
-                add     r6,r6,#1        ;Erhöhe r6 um 1.
+                strh    r3,[r6]         ;Schreibe r3 an Adresse r6.
+                add     r6,r6,#2        ;Erhöhe r6 um 1.
 endif_ausgabe                
 step_ausgabe
                 add     r3,r3,#1        ;Erhöhe r3 um 1.
