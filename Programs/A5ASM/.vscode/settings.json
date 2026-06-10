@@ -2,6 +2,6 @@
     "debug.hideSlowPreLaunchWarning": true,
     "debug.showInStatusBar": "never",
     "clangd.arguments": [
-        "--compile-commands-dir=c:\\HAW\\GT\\TI_Labor\\gitProjekte\\ITS-BRD-VSC\\Programs\\PrimzahlSiebASM\\out\\PrimzahlSiebASM\\ITSboard_Assembly\\Debug"
+        "--compile-commands-dir=c:\\HAW\\GT\\TI_Labor\\gitProjekte\\ITS-BRD-VSC\\Programs\\A5ASM\\out\\PrimzahlSiebASM\\ITSboard_Assembly\\Debug"
     ]
 }
