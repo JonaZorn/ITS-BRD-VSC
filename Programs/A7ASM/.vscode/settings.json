@@ -1,6 +1,6 @@
 {
     "clangd.arguments": [
-        "--compile-commands-dir=c:\\HAW\\GT\\TI_Labor\\gitProjekte\\ITS-BRD-VSC\\Programs\\A7ASM\\out\\A7ASM\\ITSboard_Assembly\\Debug"
+        "--compile-commands-dir=c:\\HAW\\Git_clone\\ITS-BRD-VSC\\Programs\\A7ASM\\out\\A7ASM\\ITSboard_Assembly\\Debug"
     ],
     "debug.hideSlowPreLaunchWarning": true,
     "debug.showInStatusBar": "never"
