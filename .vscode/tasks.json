@@ -88,8 +88,6 @@
                 "gdbserver",
                 "--probe",
                 "stlink:",
-                "--connect",
-                "attach",
                 "--persist",
                 "--reset-run",
                 "--cbuild-run",

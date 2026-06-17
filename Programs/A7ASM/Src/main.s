@@ -1,124 +1,404 @@
-;******************** (C) COPYRIGHT HAW-Hamburg ********************************
+;*******************************************************************************
 ;* File Name          : main.s
-;* Author             : Franz Korf	
-;* Version            : V1.0
-;* Date               : 11.05.2022
-;* Description        : Rahmen zur Loesung von GTP Woche 7-9 (Stoppuhr).
-;
+;* Description        : Musterloesung Stoppuhr (Woche 9) - HAW Hamburg
 ;*******************************************************************************
 
-; Define address of selected GPIO and Timer registers
-PERIPH_BASE     	equ	0x40000000                 ;Peripheral base address
+PERIPH_BASE     	equ	0x40000000                 
 AHB1PERIPH_BASE 	equ	(PERIPH_BASE + 0x00020000)
 APB1PERIPH_BASE     equ PERIPH_BASE
 
-GPIOD_BASE			equ	(AHB1PERIPH_BASE + 0x0C00)		; Adresse der LEDs 
-GPIOF_BASE			equ	(AHB1PERIPH_BASE + 0x1400)		; Adresse der Schalter
-TIM2_BASE           equ (APB1PERIPH_BASE + 0x0000)		; Adresse des Hardware timers
+GPIOD_BASE			equ	(AHB1PERIPH_BASE + 0x0C00)		; LEDs 
+GPIOF_BASE			equ	(AHB1PERIPH_BASE + 0x1400)		; Schalter
+TIM2_BASE           equ (APB1PERIPH_BASE + 0x0000)		; Hardware timer
 	
-GPIO_F_PIN        	equ	(GPIOF_BASE + 0x10)				; Register der Schalter
-
-GPIO_D_PIN			equ	(GPIOD_BASE + 0x10)				; Register der LED
-GPIO_D_SET			equ (GPIOD_BASE + 0x18)				; LED on
-GPIO_D_CLR			equ	(GPIOD_BASE + 0x1A)				; LED off
+GPIO_F_PIN        	equ	(GPIOF_BASE + 0x10)				; Schalter Register
+GPIO_D_SET			equ (GPIOD_BASE + 0x18)				; LED anschalten
+GPIO_D_CLR			equ	(GPIOD_BASE + 0x1A)				; LED ausschalten
 	
-TIMER				equ (TIM2_BASE + 0x24)   ; CNT : current time stamp (32 bit),  resolution
-TIM2_PSC			equ (TIM2_BASE + 0x28)   ; Prescaler  resolution
-TIM2_ERG			equ (TIM2_BASE + 0x14)   ; 16 Bit register, Bit 0 : 1 Restart Timer
+TIMER				equ (TIM2_BASE + 0x24)   			; Zählerregister (1 Tick = 10 us)
+TIM2_PSC			equ (TIM2_BASE + 0x28)   
+TIM2_ERG			equ (TIM2_BASE + 0x14)   
 
-
-    EXTERN initITSboard			; Initialisiert die Hardware
-    EXTERN GUI_init				; LCD
-	EXTERN initTimer			; zum starten des Timers
+    EXTERN initITSboard			
+    EXTERN GUI_init				
+	EXTERN initTimer			
 	EXTERN lcdSetFont			
-	EXTERN lcdGotoXY      		; TFT goto x y function
-	EXTERN lcdPrintS			; TFT output function	
-    EXTERN lcdPrintC            ; TFT output one character		
-	EXTERN Delay				; Delay (ms) function
+	EXTERN lcdGotoXY      		
+	EXTERN lcdPrintS			
+    EXTERN lcdPrintC            
 
+; Definition der FSM Zustände
+STATE_INIT			equ	0
+STATE_RUNNING		equ	1
+STATE_HOLD			equ	2
 
-;********************************************
-; Data section, aligned on 4-byte boundery
-;********************************************
 	AREA MyData, DATA, align = 2
 
-DEFAULT_BRIGHTNESS	DCW     800							; Display Helligkeit
+DEFAULT_BRIGHTNESS	DCW     800							
 MY_TEXT				DCB		"00:00.00", 0
-Start    DCB   0        ; 0 = gestoppt, 1 = läuft
-SAVED_T  DCD   0        ; gespeicherter Timer-Wert bei Stop
-;********************************************
-; Code section, aligned on 8-byte boundery
-;********************************************
+	ALIGN
+CURRENT_STATE		DCD		STATE_INIT	; Speichert den aktuellen FSM-Zustand
+LAST_TIMER_VAL		DCD		0			; Für UpdateClk: Vorheriger Hardware-Timestamp
+STOPWATCH_TICKS		DCD		0			; Das Zeitkonto der Stoppuhr in 10us-Schritten
+LAST_BUTTON_STATE	DCD		0xFF		; Zur Flankenerkennung
+
 	AREA |.text|, CODE, READONLY, ALIGN = 3
-
-
-;--------------------------------------------
-; main subroutine
-;--------------------------------------------
 	EXPORT main [CODE]
 	
 main	PROC
-
-		
-		BL		initITSboard			; Initialisierung der HW
+		BL		initITSboard			
 		ldr   	r1,=DEFAULT_BRIGHTNESS	
 		ldrh 	r0,[r1]
-		bl   	GUI_init				; Starte Display mit Helligkeit 800
-		bl  	initTimer				; Timer Starten
-		ldr 	R1,=TIM2_PSC   			; Set pre scaler such that 1 timer tick represents 10 us
-		mov 	R0,#(90*10-1) 			; 1 Tick = 10us bei 90 MHz
+		bl   	GUI_init				
+		bl  	initTimer				
+		ldr 	R1,=TIM2_PSC   			
+		mov 	R0,#(90*10-1) 			
 		strh	R0,[R1]
-		ldr 	R1,=TIM2_ERG   			; Restart timer	
+		ldr 	R1,=TIM2_ERG   			
 		mov		R0,#0x01
-		strh	R0,[R1]					; Set UG Bit
-		MOV 	R0, #24					; Sezt Schriftgröße auf 24
-		bl  	lcdSetFont				; 
+		strh	R0,[R1]					
+		MOV 	R0,#24					
+		bl  	lcdSetFont				
 
-; Ihre Initialisierung
-; Timer
-		ldr		R1,=Start
-		mov		R0,#0	
+		; Initialisiere den ersten Zeitstempel für UpdateClk
+		ldr		R0,=TIMER
+		ldr		R0,[R0]
+		ldr		R1,=LAST_TIMER_VAL
 		str		R0,[R1]
 
-; LCD_Position
+		; Uhr auf 00:00.00 vorab anzeigen
 		mov		R0,#10
 		mov		R1,#6
 		BL		lcdGotoXY
-
-		; Simple test code
 		ldr 	R0,=MY_TEXT
 		bl  	lcdPrintS
 
 superloop
-; Timer leesen
-		ldr		R1,=TIMER
-		ldr		R0,[R1]		; 1 tick = 10us
-		muv		R2,#100		
-		udiv	R1,R0,R2	; in Millisekunden
-		mov		R2,#1000
-		udiv	R3,R1,R2	; in Sekunden
-		mov		R2,#60
-		udiv	R4,R3,R2	; in Minuten
-
-
-; read buttons
-		LDR		R0,=GPIO_F_PIN	; Liest GPIO-F-Eingangsregister 
+		BL		UpdateClk        ; 1. Zeit-Aktualisierung (bereits als UP vorhanden)
+		BL		ReadButtons      ; 2. Taster einlesen & Flankenerkennung
+		BL		UpdateFSM        ; 3. FSM Zustandsübergänge (INIT, RUNNING, HOLD)
+		BL		SetLEDs          ; 4. LEDs je nach Zustand ansteuern
+		BL		DisplayTime      ; 5. Uhrzeit auf dem TFT ausgeben (außer in HOLD)
+		BAL		superloop
+; ----------------------------------------------------
+; TASTER EINLESEN & FLANKENERKENNUNG
+; ----------------------------------------------------
+		ldr		R0,=GPIO_F_PIN
 		ldrh	R0,[R0]
-		and		R0,#0xFF   	; set bit 31 to 8 of R0 to 0 ; bit 7 to 0 do not change
-							; bit i for R0 is 1 <=> button S<i> not pressed (for 0 <= i <= 7)
-							; bit i for R0 is 0 <=> button S<i>     pressed (for 0 <= i <= 7)
-							; switch LEDs off (button s<i> not pressed : LED D< +8> switched off (for 0 <= i <= 7)
-		LDR		R1,=GPIO_D_CLR
-		str		R0,[R1]
-		
-		; switch LEDs on (button s<i>      pressed : LED D< +8> switched on  (for 0 <= i <= 7)
-		eor		R1,R0,#0xFF       ; toogle bit 0 to 7 of R1
-		LDR		R1,=GPIO_D_SET
-		str		R0,[R1]	
-		BAL		superloop				; End of superloop
-		
+		and		R0,#0xFF				; R0 = aktuelle Tasterzustände
 
+		ldr		R1,=LAST_BUTTON_STATE
+		ldr		R2,[R1]					; R2 = alter Zustand
+		str		R0,[R1]					; Zustand für das nächste Mal merken
+
+; ----------------------------------------------------
+; FSM ZUSTANDSÜBERGÄNGE (INIT, RUNNING, HOLD)
+; ----------------------------------------------------
+		ldr		R1,=CURRENT_STATE
+		ldr		R3,[R1]					; R3 = Aktueller Zustand
+
+; --- PRÜFE TASTER S5 (Bit 5) -> Wechselt immer zu INIT ---
+	; Flanke: Alt=1 (nicht gedrückt), Neu=0 (gedrückt)
+		and		R4,R0,#(1<<5)			; Aktuelles Bit 5
+		and		R5,R2,#(1<<5)			; Altes Bit 5
+		cmp		R5,#(1<<5)
+		bne		check_s6
+		cmp		R4,#0
+		bne		check_s6
+	; S5 gedrückt -> Wechsle zu INIT
+		mov		R3,#STATE_INIT
+		str		R3,[R1]
+		b		fsm_output				; Zustand hat sich geändert, weitergehen
+
+check_s6
+	; --- PRÜFE TASTER S6 (Bit 6) -> Wechselt von RUNNING zu HOLD ---
+		and		R4,R0,#(1<<6)			; Aktuelles Bit 6
+		and		R5,R2,#(1<<6)			; Altes Bit 6
+		cmp		R5,#(1<<6)
+		bne		check_s7
+		cmp		R4,#0
+		bne		check_s7
+	; S6 gedrückt -> Wenn wir in RUNNING sind, wechsle zu HOLD
+		cmp		R3,#STATE_RUNNING
+		bne		check_s7
+		mov		R3,#STATE_HOLD
+		str		R3,[R1]
+		b		fsm_output
+
+check_s7
+; --- PRÜFE TASTER S7 (Bit 7) -> Wechselt zu RUNNING (aus INIT oder HOLD) ---
+		and		R4,R0,#(1<<7)			; Aktuelles Bit 7
+		and		R5,R2,#(1<<7)			; Altes Bit 7
+		cmp		R5,#(1<<7)
+		bne		fsm_output
+		cmp		R4,#0
+		bne		fsm_output
+	; S7 gedrückt -> Wenn INIT oder HOLD, wechsle zu RUNNING
+		cmp		R3,#STATE_INIT
+		beq		set_running
+		cmp		R3,#STATE_HOLD
+		bne		fsm_output
+set_running
+		mov		R3,#STATE_RUNNING
+		str		R3,[R1]
+
+; ----------------------------------------------------
+; AKTIONEN JE NACH ZUSTAND (Akkumulation / LEDs)
+; ----------------------------------------------------
+fsm_output
+	; Falls Zustand == INIT: Setze die gestoppte Zeitspanne hart auf 0
+		cmp		R3,#STATE_INIT
+		bne		drive_leds
+		mov		R0,#0
+		ldr		R4,=STOPWATCH_TICKS
+		str		R0,[R4]
+
+drive_leds
+	; LEDs ansteuern: Zuerst D8 und D9 ausschalten (Bits 0 und 1)
+		mov		R0,#3
+		ldr		R4,=GPIO_D_CLR
+		str		R0,[R4]
+
+	; Im Zustand RUNNING (1): LED D8 an (Bit 0)
+		cmp		R3,#STATE_RUNNING
+		bne		led_hold
+		mov		R0,#1
+		ldr		R4,=GPIO_D_SET
+		str		R0,[R4]
+		b		display_section
+
+led_hold
+	; Im Zustand HOLD (2): LED D8 und D9 an (Bit 0 und Bit 1 -> Wert 3)
+		cmp		R3,#STATE_HOLD
+		bne		display_section
+		mov		R0,#3
+		ldr		R4,=GPIO_D_SET
+		str		R0,[R4]
+
+; ----------------------------------------------------
+; DISPLAY-AUSGABE (Nur wenn NICHT im Zustand HOLD)
+; ----------------------------------------------------
+display_section
+		cmp		R3,#STATE_HOLD
+		beq		loop_end				; Wenn HOLD, überspringe das Zeichnen (Anzeige friert ein!)
+
+	; Zeit aus Variable laden
+		ldr		R0,=STOPWATCH_TICKS
+		ldr		R0,[R0]
+
+	; --- Aufteilung in mm:ss.nn ---
+        ldr     R2,=6000000      
+        udiv    R4,R0,R2        
+        mul     R3,R4,R2
+        sub     R0,R0,R3        
+
+        ldr     R2,=100000       
+        udiv    R5,R0,R2        
+        mul     R3,R5,R2
+        sub     R0,R0,R3        
+
+        mov     R2,#1000         
+        udiv    R6,R0,R2
+
+	; --- ASCII Konvertierung & String befüllen ---
+		ldr		R0,=MY_TEXT		
+		mov		R1,#10
+
+		udiv	R2,R4,R1		; Minuten Zehner
+		mul		R3,R2,R1
+		sub		R3,R4,R3		; Minuten Einer
+		add		R2,#0x30		
+		add		R3,#0x30
+		strb	R2,[R0,#0]		
+		strb	R3,[R0,#1]		
+
+		udiv	R2,R5,R1		; Sekunden Zehner
+		mul		R3,R2,R1
+		sub		R3,R5,R3		; Sekunden Einer
+		add		R2,#0x30
+		add		R3,#0x30
+		strb	R2,[R0,#3]		
+		strb	R3,[R0,#4]		
+
+		udiv	R2,R6,R1		; Hundertstel Zehner
+		mul		R3,R2,R1
+		sub		R3,R6,R3		; Hundertstel Einer
+		add		R2,#0x30
+		add		R3,#0x30
+		strb	R2,[R0,#6]		
+		strb	R3,[R0,#7]		
+
+	; --- Auf LCD ausgeben ---
+		mov		R0,#10
+		mov		R1,#6
+		BL		lcdGotoXY
+		ldr 	R0,=MY_TEXT
+		bl  	lcdPrintS
+
+loop_end
+		BAL		superloop				
 forever b		forever
+		ENDP
+
+loop_end
+		BAL		superloop
+		ENDP
+
+; Unterprogramme
+ReadButtons PROC
+		ldr		R0,=GPIO_F_PIN
+		ldrh	R0,[R0]
+		and		R0,#0xFF				
+
+		ldr		R1,=LAST_BUTTON_STATE
+		ldr		R2,[R1]					
+		str		R0,[R1]					
+		bx		lr
+		ENDP
+
+UpdateFSM PROC
+		ldr		R1,=CURRENT_STATE
+		ldr		R3,[R1]					
+
+	; --- PRÜFE TASTER S5 (Bit 5) ---
+		and		R4,R0,#(1<<5)
+		and		R5,R2,#(1<<5)
+		cmp		R5,#(1<<5)
+		bne		check_s6
+		cmp		R4,#0
+		bne		check_s6
+		mov		R3,#STATE_INIT
+		str		R3,[R1]
+		b		fsm_output_action
+
+check_s6
+	; --- PRÜFE TASTER S6 (Bit 6) ---
+		and		R4,R0,#(1<<6)
+		and		R5,R2,#(1<<6)
+		cmp		R5,#(1<<6)
+		bne		check_s7
+		cmp		R4,#0
+		bne		check_s7
+		cmp		R3,#STATE_RUNNING
+		bne		check_s7
+		mov		R3,#STATE_HOLD
+		str		R3,[R1]
+		b		fsm_output_action
+
+check_s7
+	; --- PRÜFE TASTER S7 (Bit 7) ---
+		and		R4,R0#(1<<7)
+		and		R5,R2,#(1<<7)
+		cmp		R5,#(1<<7)
+		bne		fsm_output_action
+		cmp		R4,#0
+		bne		fsm_output_action
+		cmp		R3,#STATE_INIT
+		beq		set_running
+		cmp		R3,#STATE_HOLD
+		bne		fsm_output_action
+set_running
+		mov		R3,#STATE_RUNNING
+		str		R3,[R1]
+
+fsm_output_action
+		cmp		R3,#STATE_INIT
+		bne		fsm_end
+		mov		R0,#0
+		ldr		R4,=STOPWATCH_TICKS
+		str		R0,[R4]
+fsm_end
+		bx		lr
+		ENDP
+
+SetLEDs PROC
+		ldr		R3,=CURRENT_STATE
+		ldr		R3,[R3]
+
+		mov		R0,#3
+		ldr		R4,=GPIO_D_CLR
+		str		R0,[R4]
+
+		cmp		R3,#STATE_RUNNING
+		bne		led_hold
+		mov		R0,#1
+		ldr		R4,=GPIO_D_SET
+		str		R0,[R4]
+		b		led_end
+
+led_hold
+		cmp		R3,#STATE_HOLD
+		bne		led_end
+		mov		R0,#3
+		ldr		R4,=GPIO_D_SET
+		str		R0,[R4]
+led_end
+		bx		lr
+		ENDP
+
+DisplayTime PROC
+		PUSH    {LR}                    
+
+		ldr		R3,=CURRENT_STATE
+		ldr		R3,[R3]
+		cmp		R3,#STATE_HOLD
+		beq		disp_end				
+
+		ldr		R0,=STOPWATCH_TICKS
+		ldr		R0,[R0]
+
+		ldr     R2,=6000000      
+		udiv    R4,R0,R2        
+		mul     R3,R4,R2
+		sub     R0,R0,R3        
+
+		ldr     R2,=100000       
+		udiv    R5,R0,R2        
+		mul     R3,R5,R2
+		sub     R0,R0,R3        
+
+		mov     R2,#1000         
+		udiv    R6,R0,R2
+
+		ldr		R0,=MY_TEXT		
+		mov		R1,#10
+
+		udiv	R2,R4,R1		
+		mul		R3,R2,R1
+		sub		R3,R4,R3		
+		add		R2,#0x30		
+		add		R3,#0x30
+		strb	R2,[R0,#0]		
+		strb	R3,[R0,#1]		
+
+		udiv	R2,R5,R1		
+		mul		R3,R2,R1
+		sub		R3,R5,R3		
+		add		R2,#0x30
+		add		R3,#0x30
+		strb	R2,[R0,#3]		
+		strb	R3,[R0,#4]		
+
+		udiv	R2,R6,R1		
+		mul		R3,R2,R1
+		sub		R3,R6,R3		
+		add		R2,#0x30
+		add		R3,#0x30
+		strb	R2,[R0,#6]		
+		strb	R3,[R0,#7]		
+
+		mov		R0,#10
+		mov		R1,#6
+		BL		lcdGotoXY
+		ldr 	R0,=MY_TEXT
+		BL  	lcdPrintS
+
+disp_end
+		POP     {PC}                    
+		ENDP
+
+UpdateClk	PROC
+		bx		lr
 		ENDP
 
 		ALIGN
