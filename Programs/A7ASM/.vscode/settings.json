@@ -1,7 +1,5 @@
 {
-    "clangd.arguments": [
-        "--compile-commands-dir=c:\\HAW\\Git_clone\\ITS-BRD-VSC\\Programs\\A7ASM\\out\\A7ASM\\ITSboard_Assembly\\Debug"
-    ],
+    "clangd.arguments": [],
     "debug.hideSlowPreLaunchWarning": true,
     "debug.showInStatusBar": "never",
     "memory-inspector.addressPadding": "32bit",
