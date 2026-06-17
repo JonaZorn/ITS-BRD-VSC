@@ -74,6 +74,7 @@ main	PROC
 		bl  	lcdPrintS
 
 superloop
+<<<<<<< HEAD
 		BL		UpdateClk        ; 1. Zeit-Aktualisierung (bereits als UP vorhanden)
 		BL		ReadButtons      ; 2. Taster einlesen & Flankenerkennung
 		BL		UpdateFSM        ; 3. FSM Zustandsübergänge (INIT, RUNNING, HOLD)
@@ -84,6 +85,32 @@ superloop
 ; TASTER EINLESEN & FLANKENERKENNUNG
 ; ----------------------------------------------------
 		ldr		R0,=GPIO_F_PIN
+=======
+; Timer leesen
+		ldr		R1,=TIMER
+		ldr		R0,[R1]		; 1 tick = 10us
+		mov		R2,#60000000		
+		udiv	R1,R0,R2	; in 10 minuten
+		str
+		mov		R2,#6000000
+		udiv	R3,R1,R2	; in 1 Minuten
+		str
+		mov		R2,#1000000
+		udiv	R4,R3,R2	; in 10 sekunden 
+		str
+		mov		R2,#100000
+		udiv	R4,R3,R2	; in 1 sekunden
+		str
+		mov		R2,#10000
+		udiv	R4,R3,R2	; in 10 millisekunde
+		str
+		mov		R2,#1000
+		udiv	R4,R3,R2	; in 1 millisekunde
+		str
+
+; read buttons
+		LDR		R0,=GPIO_F_PIN	; Liest GPIO-F-Eingangsregister 
+>>>>>>> 01a349bc304a2d5de75f4ffc8329a32029fe5fc9
 		ldrh	R0,[R0]
 		and		R0,#0xFF				; R0 = aktuelle Tasterzustände
 
