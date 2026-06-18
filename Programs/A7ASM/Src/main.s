@@ -1,8 +1,13 @@
-;*******************************************************************************
+;******************** (C) COPYRIGHT HAW-Hamburg ********************************
 ;* File Name          : main.s
-;* Description        : Musterloesung Stoppuhr (Woche 9) - HAW Hamburg
+;* Author             : Franz Korf	
+;* Version            : V1.0
+;* Date               : 11.05.2022
+;* Description        : Rahmen zur Loesung von GTP Woche 7-9 (Stoppuhr).
+;
 ;*******************************************************************************
 
+; Define address of selected GPIO and Timer registers
 PERIPH_BASE     	equ	0x40000000                 
 AHB1PERIPH_BASE 	equ	(PERIPH_BASE + 0x00020000)
 APB1PERIPH_BASE     equ PERIPH_BASE
@@ -12,74 +17,90 @@ GPIOF_BASE			equ	(AHB1PERIPH_BASE + 0x1400)		; Schalter
 TIM2_BASE           equ (APB1PERIPH_BASE + 0x0000)		; Hardware timer
 	
 GPIO_F_PIN        	equ	(GPIOF_BASE + 0x10)				; Schalter Register
+
+GPIO_D_PIN			equ	(GPIOD_BASE + 0x10)
 GPIO_D_SET			equ (GPIOD_BASE + 0x18)				; LED anschalten
 GPIO_D_CLR			equ	(GPIOD_BASE + 0x1A)				; LED ausschalten
 	
-TIMER				equ (TIM2_BASE + 0x24)   			; Zählerregister (1 Tick = 10 us)
-TIM2_PSC			equ (TIM2_BASE + 0x28)   
-TIM2_ERG			equ (TIM2_BASE + 0x14)   
+TIMER				equ (TIM2_BASE + 0x24)   ; CNT : current time stamp (32 bit),  resolution
+TIM2_PSC			equ (TIM2_BASE + 0x28)   ; Prescaler  resolution
+TIM2_ERG			equ (TIM2_BASE + 0x14)   ; 16 Bit register, Bit 0 : 1 Restart Timer  
 
-    EXTERN initITSboard			
-    EXTERN GUI_init				
-	EXTERN initTimer			
-	EXTERN lcdSetFont			
-	EXTERN lcdGotoXY      		
-	EXTERN lcdPrintS			
-    EXTERN lcdPrintC            
+    EXTERN initITSboard
+    EXTERN GUI_init
+	EXTERN TP_Init
+	EXTERN initTimer
+	EXTERN lcdSetFont
+	EXTERN lcdGotoXY      		; TFT goto x y function
+	EXTERN lcdPrintS			; TFT output function	
+    EXTERN lcdPrintC            ; TFT output one character		
+	EXTERN Delay				; Delay (ms) function            
 
-; Definition der FSM Zustände
+; Definition der Uhr Zustände für code lesbarkeit.
 STATE_INIT			equ	0
 STATE_RUNNING		equ	1
 STATE_HOLD			equ	2
 
+;********************************************
+; Data section, aligned on 4-byte boundery
+;********************************************
 	AREA MyData, DATA, align = 2
 
-DEFAULT_BRIGHTNESS	DCW     800							
-MY_TEXT				DCB		"00:00.00", 0
-	ALIGN
-CURRENT_STATE		DCD		STATE_INIT	; Speichert den aktuellen FSM-Zustand
-LAST_TIMER_VAL		DCD		0			; Für UpdateClk: Vorheriger Hardware-Timestamp
-STOPWATCH_TICKS		DCD		0			; Das Zeitkonto der Stoppuhr in 10us-Schritten
-LAST_BUTTON_STATE	DCD		0xFF		; Zur Flankenerkennung
+DEFAULT_BRIGHTNESS	DCW     800				; Helligkeit			
+MY_TEXT				DCB		"00:00.00", 0	; text auf dem board 
+	ALIGN									; korrektur speicher auf nächste 4 byte adresse
+CURRENT_STATE		DCD		STATE_INIT		; Speichert den aktuellen FSM-Zustand
+LAST_TIMER_VAL		DCD		0				; Für UpdateClk: Vorheriger Hardware-Timestamp
+STOPUHR_TICKS		DCD		0				; Das Zeitkonto der Stoppuhr in 10us-Schritten
+LAST_BUTTON_STATE	DCD		0xFF			; damti knöpfe nur einmal auslösen
 
+;********************************************
+; Code section, aligned on 8-byte boundery
+;********************************************
 	AREA |.text|, CODE, READONLY, ALIGN = 3
+
+;--------------------------------------------
+; main subroutine
+;--------------------------------------------
 	EXPORT main [CODE]
 	
 main	PROC
-		BL		initITSboard			
-		ldr   	r1,=DEFAULT_BRIGHTNESS	
-		ldrh 	r0,[r1]
-		bl   	GUI_init				
-		bl  	initTimer				
-		ldr 	R1,=TIM2_PSC   			
-		mov 	R0,#(90*10-1) 			
-		strh	R0,[R1]
-		ldr 	R1,=TIM2_ERG   			
-		mov		R0,#0x01
-		strh	R0,[R1]					
-		MOV 	R0, #24					
-		bl  	lcdSetFont				
+	; Initialisierung der HW
+		bl		initITSboard
+		ldr   	r1,=DEFAULT_BRIGHTNESS	; adr. helligkeit
+		ldrh 	r0,[r1]					
+		bl   	GUI_init				; Initialisiert das Grafik-Display 
+		bl  	initTimer				; einschalten des Hardware-Timer
+		ldr 	R1,=TIM2_PSC   			; Initialisiert prescaler
+		mov 	R0,#(90*10-1) 			; runterdrehen der tick rate (899) 90mhz warte 900 ticks für 1
+		strh	R0,[R1]					; setzt prescaler runter auf 1 timer tick = 10us.
+		ldr 	R1,=TIM2_ERG   			; Initialisiert Restart timer	
+		mov		R0,#0x01				; Set UG Bit
+		strh	R0,[R1]					; speichert UG Bit im Restart timer
+		MOV 	R0,#24					; schriftgröße 24
+		bl  	lcdSetFont				; giebt schriftgröße aus
 
+	; Ihre Initialisierung
 	; Initialisiere den ersten Zeitstempel für UpdateClk
-		ldr		R0,=TIMER
-		ldr		R0,[R0]
-		ldr		R1,=LAST_TIMER_VAL
-		str		R0,[R1]
+		ldr		R0,=TIMER			; Lädt die Speicheradresse des Hardware-Timer
+		ldr		R0,[R0]				; Liest aktuellen Zählerstand und speichert den Wert
+		ldr		R1,=LAST_TIMER_VAL	; Lädt die Adresse deiner RAM-Variable
+		str		R0,[R1]				; Speichert Hardware-Zählerstand in der Variable
 
 	; Uhr auf 00:00.00 vorab anzeigen
-		mov		R0,#10
-		mov		R1,#6
-		BL		lcdGotoXY
-		ldr 	R0,=MY_TEXT
-		bl  	lcdPrintS
+		mov		R0,#10				; Lädt die X-Koordinate
+		mov		R1,#6				; Lädt die Y-Koordinate
+		bl		lcdGotoXY			; Setzt text-Cursor auf die Position (10, 6)
+		ldr 	R0,=MY_TEXT			; Lädt Speicheradresse Text ("00:00.00")
+		bl  	lcdPrintS			; Giebt MY_TEXT	auf Position (10, 6) aus
 
 superloop
-		BL		UpdateClk        ; 1. Zeit-Aktualisierung
-		BL		ReadButtons      ; 2. Taster einlesen & Flankenerkennung (liefert R0 und R2)
-		BL		UpdateFSM        ; 3. FSM Zustandsübergänge (INIT, RUNNING, HOLD)
-		BL		SetLEDs          ; 4. LEDs je nach Zustand ansteuern
-		BL		DisplayTime      ; 5. Uhrzeit auf dem TFT ausgeben (außer in HOLD)
-		BAL		superloop
+		bl		UpdateClk        	; 1. Zeit-Aktualisierung
+		bl		ReadButtons      	; 2. Taster einlesen & Flankenerkennung
+		bl		UpdateFSM        	; 3. FSM Zustandsübergänge (INIT, RUNNING, HOLD)
+		bl		SetLEDs          	; 4. LEDs je nach Zustand ansteuern
+		bl		DisplayTime      	; 5. Uhrzeit auf dem TFT ausgeben (außer in HOLD)
+		bal		superloop
 		ENDP		; 
 
 
@@ -88,36 +109,36 @@ superloop
 ;------------------
 
 ReadButtons PROC
-		ldr		R0,=GPIO_F_PIN
-		ldrh	R0,[R0]
-		and		R0,#0xFF				; R0 = aktuelle Tasterzustände
+		ldr		R0,=GPIO_F_PIN			; Lädt die Adresse für Schalter
+		ldrh	R0,[R0]					; holt aktuellen Zustand aller Pins von Port F
+		and		R0,#0xFF				; R0 = aktuelle Tasterzustände und mit 0xFF
 
-		ldr		R1,=LAST_BUTTON_STATE
+		ldr		R1,=LAST_BUTTON_STATE	; Lädt Adresse der RAM-Variable
 		ldr		R2,[R1]					; R2 = alter Zustand
-		str		R0,[R1]					; Zustand für das nächste Mal merken
-		bx		lr
+		str		R0,[R1]					; Lädt neuen Zustand
+		bx		lr						; Zurück in superloop
 		ENDP
 
 UpdateFSM PROC
 		ldr		R1,=CURRENT_STATE
-		ldr		R3,[R1]					; R3 = Aktueller Zustand
+		ldr		R3,[R1]				; R3 = Aktueller Zustand
 
-	; --- PRÜFE TASTER S5 (Bit 5) ---
-		and		R4,R0,#(1<<5)
-		and		R5,R2,#(1<<5)
-		cmp		R5,#(1<<5)
-		bne		check_s6
-		cmp		R4,#0
-		bne		check_s6
+	; Prüfe Taste S5 (Bit 5) 		
+		and		R4,R0,#0x20		; Filtert Bit 5 aus dem aktuellen Zustand
+		and		R5,R2,#0x20		; Filtert Bit 5 aus dem alten Zustand
+		cmp		R5,#0x20		; Prüft ob Knopf in letzten Runde losgelassen war
+		bne		check_s6		; wenn nein, gehe zu check_s6
+		cmp		R4,#0			; Prüft ob Knopf jetzt gedrückt wurde
+		bne		check_s6		; wenn nein, gehe zu check_s6 
 		mov		R3,#STATE_INIT
 		str		R3,[R1]
 		b		fsm_output_action
 
 check_s6
 	; --- PRÜFE TASTER S6 (Bit 6) ---
-		and		R4,R0, #(1<<6)
-		and		R5,R2, #(1<<6)
-		cmp		R5,#(1<<6)
+		and		R4,R0,#0x40
+		and		R5,R2,#0x40
+		cmp		R5,#0x40
 		bne		check_s7
 		cmp		R4,#0
 		bne		check_s7
@@ -129,9 +150,9 @@ check_s6
 
 check_s7
 	; --- PRÜFE TASTER S7 (Bit 7) ---
-		and		R4,R0,#(1<<7)
-		and		R5,R2,#(1<<7)
-		cmp		R5,#(1<<7)
+		and		R4,R0,#0x80
+		and		R5,R2,#0x80
+		cmp		R5,#0x80
 		bne		fsm_output_action
 		cmp		R4,#0
 		bne		fsm_output_action
@@ -147,7 +168,7 @@ fsm_output_action
 		cmp		R3,#STATE_INIT
 		bne		fsm_end
 		mov		R0,#0
-		ldr		R4,=STOPWATCH_TICKS
+		ldr		R4,=STOPUHR_TICKS
 		str		R0,[R4]
 fsm_end
 		bx		lr
@@ -179,14 +200,14 @@ led_end
 		ENDP
 
 DisplayTime PROC
-		PUSH    {LR}                    ; LR sichern, da BL aufgerufen wird
+		PUSH    {LR}                    ; LR sichern, da bl aufgerufen wird
 
 		ldr		R3,=CURRENT_STATE
 		ldr		R3,[R3]
 		cmp		R3,#STATE_HOLD
 		beq		disp_end				; Wenn HOLD, Anzeige einfrieren
 
-		ldr		R0,=STOPWATCH_TICKS
+		ldr		R0,=STOPUHR_TICKS
 		ldr		R0,[R0]
 
 		ldr     R2,=6000000      
@@ -231,9 +252,9 @@ DisplayTime PROC
 
 		mov		R0,#10
 		mov		R1,#6
-		BL		lcdGotoXY
+		bl		lcdGotoXY
 		ldr 	R0,=MY_TEXT
-		BL  	lcdPrintS
+		bl  	lcdPrintS
 
 disp_end
 		POP     {PC}                    ; Rücksprung
@@ -252,7 +273,7 @@ UpdateClk	PROC
 		str		R1,[R2]					; Aktuellen Wert für nächstes Mal speichern
 
 		sub		R0,R1,R3				; Vergangene Ticks seit letztem Aufruf calculate
-		ldr		R1,=STOPWATCH_TICKS
+		ldr		R1,=STOPUHR_TICKS
 		ldr		R2,[R1]
 		add		R2,R2,R0				; Ticks auf das Zeitkonto addieren
 		str		R2,[R1]
