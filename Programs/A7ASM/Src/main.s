@@ -124,39 +124,39 @@ UpdateFSM PROC
 		ldr		R3,[R1]				; R3 = Aktueller Zustand
 
 	; Prüfe Taste S5 (Bit 5) 		
-		and		R4,R0,#0x20		; Filtert Bit 5 aus dem aktuellen Zustand
-		and		R5,R2,#0x20		; Filtert Bit 5 aus dem alten Zustand
-		cmp		R5,#0x20		; Prüft ob Knopf in letzten Runde losgelassen war
-		bne		check_s6		; wenn nein, gehe zu check_s6
-		cmp		R4,#0			; Prüft ob Knopf jetzt gedrückt wurde
-		bne		check_s6		; wenn nein, gehe zu check_s6 
-		mov		R3,#STATE_INIT
-		str		R3,[R1]
-		b		fsm_output_action
+		and		R4,R0,#0x20			; Filtert Bit 5 aus dem aktuellen Zustand
+		and		R5,R2,#0x20			; Filtert Bit 5 aus dem alten Zustand
+		cmp		R5,#0x20			; Prüft ob Knopf in letzten Runde losgelassen war
+		bne		check_s6			; wenn nein, gehe zu check_s6
+		cmp		R4,#0				; Prüft ob Knopf jetzt gedrückt wurde
+		bne		check_s6			; wenn nein, gehe zu check_s6 
+		mov		R3,#STATE_INIT  	; R3 = 0
+		str		R3,[R1]				; speicher R3 im CURRENT_STATE
+		b		fsm_output_action	; springe zum output
 
 check_s6
 	; --- PRÜFE TASTER S6 (Bit 6) ---
-		and		R4,R0,#0x40
-		and		R5,R2,#0x40
-		cmp		R5,#0x40
-		bne		check_s7
-		cmp		R4,#0
-		bne		check_s7
-		cmp		R3,#STATE_RUNNING
+		and		R4,R0,#0x40			; Filtert Bit 5 aus dem aktuellen Zustand
+		and		R5,R2,#0x40			; Filtert Bit 5 aus dem alten Zustand
+		cmp		R5,#0x40			; Prüft ob Knopf in letzten Runde losgelassen war
+		bne		check_s7			; wenn nein, gehe zu check_s7
+		cmp		R4,#0				; Prüft ob Knopf jetzt gedrückt wurde
+		bne		check_s7			; wenn nein, gehe zu check_s7
+		cmp		R3,#STATE_RUNNING	; 
 		bne		check_s7
 		mov		R3,#STATE_HOLD
-		str		R3,[R1]
+		str		R3,[R1]				; speicher R3 im STATE_HOLD
 		b		fsm_output_action
 
 check_s7
 	; --- PRÜFE TASTER S7 (Bit 7) ---
-		and		R4,R0,#0x80
-		and		R5,R2,#0x80
-		cmp		R5,#0x80
-		bne		fsm_output_action
-		cmp		R4,#0
-		bne		fsm_output_action
-		cmp		R3,#STATE_INIT
+		and		R4,R0,#0x80			; Filtert Bit 5 aus dem aktuellen Zustand
+		and		R5,R2,#0x80			; Filtert Bit 5 aus dem alten Zustand
+		cmp		R5,#0x80			; Prüft ob Knopf in letzten Runde losgelassen war
+		bne		fsm_output_action	; wenn nein springe zu fsm
+		cmp		R4,#0				; Prüft ob Knopf jetzt gedrückt wurde
+		bne		fsm_output_action	; wenn nein springe zu fsm
+		cmp		R3,#STATE_INIT		; 
 		beq		set_running
 		cmp		R3,#STATE_HOLD
 		bne		fsm_output_action
@@ -165,42 +165,42 @@ set_running
 		str		R3,[R1]
 
 fsm_output_action
-		cmp		R3,#STATE_INIT
+		cmp		R3,#STATE_INIT		; vergleiche CURRENT_STATE mit STATE_INIT
 		bne		fsm_end
 		mov		R0,#0
 		ldr		R4,=STOPUHR_TICKS
-		str		R0,[R4]
+		str		R0,[R4]				; überschreibe den timer mit 0 um wieder hoch zu zählen
 fsm_end
 		bx		lr
 		ENDP
 
 SetLEDs PROC
 		ldr		R3,=CURRENT_STATE
-		ldr		R3,[R3]
+		ldr		R3,[R3]				; lade CURRENT_STATE
 
-		mov		R0,#3
+		mov		R0,#3				; led 1 und 2 = 3 = 0011
 		ldr		R4,=GPIO_D_CLR
-		str		R0,[R4]
+		str		R0,[R4]				; setzt led 1 und 2 off
 
-		cmp		R3,#STATE_RUNNING
-		bne		led_hold
-		mov		R0,#1
-		ldr		R4,=GPIO_D_SET
-		str		R0,[R4]
+		cmp		R3,#STATE_RUNNING	; prüfe CURRENT_STATE = 1
+		bne		led_hold			; wenn ungleich sprienge zu led_hold
+		mov		R0,#1				; wenn gleich led 1 ansteuern
+		ldr		R4,=GPIO_D_SET		
+		str		R0,[R4]				; setzte led 1 on
 		b		led_end
 
 led_hold
-		cmp		R3,#STATE_HOLD
-		bne		led_end
-		mov		R0,#3
-		ldr		R4,=GPIO_D_SET
-		str		R0,[R4]
+		cmp		R3,#STATE_HOLD		; prüfe R3 = STATE_HOLD = 2
+		bne		led_end				; wenn ungleich spring
+		mov		R0,#3				; wenn gleich steuere led 1 und 2
+		ldr		R4,=GPIO_D_SET		
+		str		R0,[R4]				;schalte led 1 nd 2 on
 led_end
 		bx		lr
 		ENDP
 
 DisplayTime PROC
-		PUSH    {LR}                    ; LR sichern, da bl aufgerufen wird
+		PUSH    {lr}                    ; lr sichern, da bl aufgerufen wird
 
 		ldr		R3,=CURRENT_STATE
 		ldr		R3,[R3]
@@ -210,60 +210,60 @@ DisplayTime PROC
 		ldr		R0,=STOPUHR_TICKS
 		ldr		R0,[R0]
 
-		ldr     R2,=6000000      
-		udiv    R4,R0,R2        
-		mul     R3,R4,R2
-		sub     R0,R0,R3        
+		ldr     R2,=6000000      		
+		udiv    R4,R0,R2        		; teile ticks durch 6000000 für minuten
+		mul     R3,R4,R2				; mul ergebnis (R4) mit 6000000
+		sub     R0,R0,R3        		; ziehe minuten von ticks ab
 
-		ldr     R2,=100000       
-		udiv    R5,R0,R2        
-		mul     R3,R5,R2
-		sub     R0,R0,R3        
+		ldr     R2,=100000       		
+		udiv    R5,R0,R2        		; teile ticks durch 100000 für sekunden
+		mul     R3,R5,R2				; mul ergebnis (R4) mit 100000
+		sub     R0,R0,R3        		; ziehe minuten von ticks ab
 
 		mov     R2,#1000         
-		udiv    R6,R0,R2
+		udiv    R6,R0,R2				; teile ticks durch 1000 für ms
 
 		ldr		R0,=MY_TEXT		
 		mov		R1,#10
 
-		udiv	R2,R4,R1		
-		mul		R3,R2,R1
-		sub		R3,R4,R3		
-		add		R2,#0x30		
-		add		R3,#0x30
-		strb	R2,[R0,#0]		
-		strb	R3,[R0,#1]		
+		udiv	R2,R4,R1				; teile minuten durch 10 für die 10ner stelle
+		mul		R3,R2,R1				; 
+		sub		R3,R4,R3				; rest leifert einerstelle der minuten
+		add		R2,#0x30				; umwandeln von ascii in zahlen
+		add		R3,#0x30				; umwandeln von ascii in zahlen
+		strb	R2,[R0,#0]				; speichern der 10ner minuten
+		strb	R3,[R0,#1]				; speichern der 1ner minuten
 
-		udiv	R2,R5,R1		
+		udiv	R2,R5,R1				; teile sekunen durch 10 für die 10ner stelle
 		mul		R3,R2,R1
-		sub		R3,R5,R3		
-		add		R2,#0x30
-		add		R3,#0x30
-		strb	R2,[R0,#3]		
-		strb	R3,[R0,#4]		
+		sub		R3,R5,R3				; rest leifert einerstelle der sekunden
+		add		R2,#0x30				; umwandeln von ascii in zahlen
+		add		R3,#0x30				; umwandeln von ascii in zahlen
+		strb	R2,[R0,#3]				; speichern der 10ner sekunden
+		strb	R3,[R0,#4]				; speichern der 1ner sekunden
 
-		udiv	R2,R6,R1		
+		udiv	R2,R6,R1				; teile ms durch 10 für die 10ner stelle
 		mul		R3,R2,R1
-		sub		R3,R6,R3		
-		add		R2,#0x30
-		add		R3,#0x30
-		strb	R2,[R0,#6]		
-		strb	R3,[R0,#7]		
+		sub		R3,R6,R3				; rest leifert einerstelle der ms
+		add		R2,#0x30				; umwandeln von ascii in zahlen
+		add		R3,#0x30				; umwandeln von ascii in zahlen
+		strb	R2,[R0,#6]				; speichern der 10ner ms
+		strb	R3,[R0,#7]				; speichern der 1ner ms
 
-		mov		R0,#10
-		mov		R1,#6
-		bl		lcdGotoXY
-		ldr 	R0,=MY_TEXT
-		bl  	lcdPrintS
+		mov		R0,#10					; x achse
+		mov		R1,#6					; y achse
+		bl		lcdGotoXY				; text position mit (x,y)
+		ldr 	R0,=MY_TEXT				; speichern er my_text adr.
+		bl  	lcdPrintS				; ausgabe des neuen text auf dem lcd
 
 disp_end
 		POP     {PC}                    ; Rücksprung
 		ENDP
 
 UpdateClk	PROC
-		ldr		R2,=CURRENT_STATE
-		ldr		R2,[R2]
-		cmp		R2,#STATE_INIT
+		ldr		R2,=CURRENT_STATE		
+		ldr		R2,[R2]					
+		cmp		R2,#STATE_INIT			; prüfe status 0, 1, 2
 		beq		reset_clk				; Im INIT-Zustand keine Zeit addieren
 
 		ldr		R1,=TIMER
@@ -272,9 +272,9 @@ UpdateClk	PROC
 		ldr		R3,[R2]					; Vorheriger Timerwert
 		str		R1,[R2]					; Aktuellen Wert für nächstes Mal speichern
 
-		sub		R0,R1,R3				; Vergangene Ticks seit letztem Aufruf calculate
+		sub		R0,R1,R3				; Vergangene Ticks seit letztem Aufruf berechnen
 		ldr		R1,=STOPUHR_TICKS
-		ldr		R2,[R1]
+		ldr		R2,[R1]					; aktueller stand der ticks
 		add		R2,R2,R0				; Ticks auf das Zeitkonto addieren
 		str		R2,[R1]
 		bx		lr
