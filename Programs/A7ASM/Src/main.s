@@ -288,16 +288,16 @@ for_sc
 
 until_sc 
 		cmp	    R4,#8               ; Alle 8 Zeichen (Index 0–7) verarbeitet?
-		BEQ		enddo_sc            ; Ja? Schleife beenden
+		beq		enddo_sc            ; Ja? Schleife beenden
 
 do_sc		
 		ldrb	R6,[R5,R4]          ; aktuelles Zeichen aus ZEIT laden
 		ldrb	R8,[R7,R4]          ; entsprechendes Zeichen aus ZEIT_ALT laden
 		cmp 	R6,R8               ; Sind beide Zeichen gleich?
-		BEQ		next           		; Ja? kein Neuzeichnen nötig, weiter zum nächsten Zeichen
+		beq		next           		; Ja? kein Neuzeichnen nötig, weiter zum nächsten Zeichen
 		strb    R6,[R7,R4]          ; Neues Zeichen in ZEIT_ALT speichern (Stand aktualisieren)
 		mov     R0,R4               ; Zeichenindex als X-Offset übernehmen
-		ADD	    R0,R0,#0xA          ; X-Position berechnen: Index + 10 (Startoffset auf dem Display)
+		add	    R0,R0,#0xA          ; X-Position berechnen: Index + 10 (Startoffset auf dem Display)
         mov     R1,#6               ; Y-Position (fest, Zeile 6)
         bl      lcdGotoXY           ; Cursor auf die Position des geänderten Zeichens setzen
 		mov  	R0,R6               ; Zu druckendes Zeichen in R0 laden
@@ -305,7 +305,7 @@ do_sc
 
 next		
 step_sc
-		ADD	    R4,R4,#1            ; Zeichenindex um 1 erhöhen
+		add	    R4,R4,#1            ; Zeichenindex um 1 erhöhen
 		B	    until_sc            ; Zurück zur Schleifenbedingung
 
 enddo_sc
@@ -315,8 +315,8 @@ enddo_sc
 
 isButtonPressed PROC
 		mov	    R2,#1               ; Bitmask initialisieren (Bit 0 gesetzt)
-		LSL	    R2,R2,R0            ; Bitmask auf das Bit des gewünschten Tasters schieben (1 << Buttonnummer)
-		ANDs    R2,R1,R2            ; Taster-Bit aus dem GPIO-Register isolieren
+		lsl	    R2,R2,R0            ; Bitmask auf das Bit des gewünschten Tasters schieben (1 << Buttonnummer)
+		ands    R2,R1,R2            ; Taster-Bit aus dem GPIO-Register isolieren
 		movne   R0,#0               ; Bit nicht 0 → Taster nicht gedrückt → R0 = 0
 	
 isPressed
